@@ -50,8 +50,8 @@ def kafka_listener(data):
     config_data = json.loads(data.value.decode("utf-8"))
 
     if 'fileDownload' in config_data:
-        print('http://172.16.12.56/uploads/' + config_data['fileDownload'])
-        wget.download('http://172.16.12.56:5000/uploads/' + config_data['fileDownload'])
+        print('http://172.16.12.56/api/uploads/' + config_data['fileDownload'])
+        wget.download('http://172.16.12.56:5000/api/uploads/' + config_data['fileDownload'])
     else:
         print(config_data)
     
@@ -65,12 +65,12 @@ while(True):
         "name" : "device1",
 	"mac" : gma(),
         "time" : time.strftime("%H:%M:%S", time.localtime()),
-        "cpu usage[%]" : psutil.cpu_percent(),
-        "ram usage [%]" : psutil.virtual_memory().percent,
-        "cpu freq" : psutil.cpu_freq(), #freq, min, max
-        "cpu stats" : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
-        "total disk space [GiB]": hdd.total / (2**30),
-        "used [GiB]" : hdd.used / (2**30)
+        "cpu_usage" : psutil.cpu_percent(),
+        "ram_usage" : psutil.virtual_memory().percent,
+        "cpu_freq" : psutil.cpu_freq(), #freq, min, max
+        "cpu_stats" : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
+        "disk_space": hdd.total / (2**30),
+        "used_disk_space" : hdd.used / (2**30)
         #"disk partitions" : psutil.disk_partitions()
     
     }
