@@ -56,7 +56,7 @@ def kafka_listener(data):
         print(config_data)
     
 
-register_kafka_listener('config', kafka_listener)
+register_kafka_listener('CONFIG', kafka_listener)
 
 
 while(True):
@@ -74,7 +74,7 @@ while(True):
         #"disk partitions" : psutil.disk_partitions()
     
     }
-    produce = producer.send('monitoring', json.dumps(monitor).encode('utf-8'))
+    produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
     result = produce.get(timeout=60)
     time.sleep(5)
 
