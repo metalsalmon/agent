@@ -29,6 +29,14 @@ device_info = {
     "packages" : installer.get_manualy_installed_packages()
 }
 
+
+request_result = {
+    "mac" : "",
+    "sequence_number" : 0,
+    "result" : "",
+    "message" : ""
+}
+
 producer.send('DEVICE_INFO', json.dumps(device_info).encode('utf-8'))
 
 global config_data
@@ -40,12 +48,13 @@ def register_kafka_listener(topic, listener):
 
         consumer.poll(timeout_ms=5000)
         for msg in consumer:
-            kafka_listener(msg)
+            listener(msg)
+    t_kafka = threading.Thread()
     t_kafka._target = poll
     t_kafka.daemon = True
     t_kafka.start()
 
-def kafka_listener(data):
+def kafka_config_listener(data):
     global config_data
     config_data = json.loads(data.value.decode("utf-8"))
 
@@ -54,9 +63,19 @@ def kafka_listener(data):
         wget.download('http://172.16.12.56:5000/api/uploads/' + config_data['fileDownload'])
     else:
         print(config_data)
+
+def kafka_management_listener(data):
+    data = json.loads(data.value.decode("utf-8"))
+
+    if data['action'] == 'install':
+    	print(installer.install_package(data['app']))
+
+    if data['action'] == 'uninstall':
+    	print(installer.uninstall_package(data['app']))
     
 
-register_kafka_listener('CONFIG', kafka_listener)
+register_kafka_listener('CONFIG', kafka_config_listener)
+register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
 
 
 while(True):
