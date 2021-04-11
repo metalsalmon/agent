@@ -31,9 +31,10 @@ device_info = {
 
 
 request_result = {
-    "mac" : "",
-    "sequence_number" : 0,
-    "result" : "",
+    "mac" : gma(),
+    "sequence_number" : -1,
+    "result_code" : 0,
+    "result" : "error",
     "message" : ""
 }
 
@@ -66,12 +67,35 @@ def kafka_config_listener(data):
 
 def kafka_management_listener(data):
     data = json.loads(data.value.decode("utf-8"))
+    request_result['sequence_number'] = data['sequence_number']
 
     if data['action'] == 'install':
-    	print(installer.install_package(data['app']))
+        if(installer.is_package_installed(data['app'])):
+            request_result['result'] = 'success'
+            request_result['result_code'] = 1000
+            request_result['message'] = 'Already installed'
+        else:
+            result = installer.install_package(data['app'])
+            request_result['result_code'] = result.returncode
+            if result.returncode == 0:
+                request_result['result'] = 'success'                  
+                request_result['message'] = 'Successfully installed'
+            else:
+                request_result['result'] = 'error'
 
-    if data['action'] == 'uninstall':
-    	print(installer.uninstall_package(data['app']))
+
+    elif data['action'] == 'remove':
+        result = installer.uninstall_package(data['app'])
+        request_result['result_code'] = result.returncode
+        if result.returncode == 0:
+            request_result['result'] = 'success'                
+            request_result['message'] = 'Successfully uninstalled'
+        else:
+            request_result['result'] = 'error'
+
+    #request_result['message'] = result.stdout
+    producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
+    result = produce.get(timeout=60)
     
 
 register_kafka_listener('CONFIG', kafka_config_listener)
@@ -81,8 +105,8 @@ register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management
 while(True):
     hdd = psutil.disk_usage('/')
     monitor = {    
-        "name" : "device1",
-	"mac" : gma(),
+        "name" : distro.name(),
+	    "mac" : gma(),
         "time" : time.strftime("%H:%M:%S", time.localtime()),
         "cpu_usage" : psutil.cpu_percent(),
         "ram_usage" : psutil.virtual_memory().percent,
