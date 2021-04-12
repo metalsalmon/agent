@@ -108,12 +108,12 @@ while(True):
         "name" : distro.name(),
 	    "mac" : gma(),
         "time" : time.strftime("%H:%M:%S", time.localtime()),
-        "cpu_usage" : psutil.cpu_percent(),
-        "ram_usage" : psutil.virtual_memory().percent,
+        "cpu_usage" : round(psutil.cpu_percent(), 2),
+        "ram_usage" : round(psutil.virtual_memory().percent, 2),
         "cpu_freq" : psutil.cpu_freq(), #freq, min, max
         "cpu_stats" : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
-        "disk_space": hdd.total / (2**30),
-        "used_disk_space" : hdd.used / (2**30)
+        "disk_space": round(hdd.total / (2**30), 2),
+        "used_disk_space" : round(hdd.used / (2**30), 2)
         #"disk partitions" : psutil.disk_partitions()
     
     }
