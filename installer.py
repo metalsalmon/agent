@@ -48,10 +48,10 @@ def get_manualy_installed_packages():
     return package_list
 
 def install_package(name):
-    return subprocess.run(["sudo", "apt", "install", "-y", name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, text=True)
+    return subprocess.run(["sudo", "apt", "install", "-y", name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 def uninstall_package(name):
-    return subprocess.run(["sudo", "apt", "purge", "-y", name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, text=True)
+    return subprocess.run(["sudo", "apt", "purge", "-y", name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 
 #print(is_package_installed("python"))

@@ -61,7 +61,12 @@ def kafka_config_listener(data):
 
     if 'fileDownload' in config_data:
         print('http://172.16.12.56/api/uploads/' + config_data['fileDownload'])
-        wget.download('http://172.16.12.56:5000/api/uploads/' + config_data['fileDownload'])
+        try:
+            wget.download('http://172.16.12.56:5000/api/uploads/' + config_data['fileDownload'], out= config_data['path'])
+        except Exception as e:
+            print('chyba: ')
+            print(e)
+
     else:
         print(config_data)
 
@@ -89,7 +94,7 @@ def kafka_management_listener(data):
         request_result['result_code'] = result.returncode
         if result.returncode == 0:
             request_result['result'] = 'success'                
-            request_result['message'] = 'Successfully uninstalled'
+            request_result['message'] = 'Successfully removed'
         else:
             request_result['result'] = 'error'
 
