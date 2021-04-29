@@ -34,7 +34,7 @@ request_result = {
     "mac" : gma(),
     "sequence_number" : -1,
     "result_code" : 0,
-    "result" : "error",
+    "version" : "",
     "message" : ""
 }
 
@@ -76,29 +76,19 @@ def kafka_management_listener(data):
 
     if data['action'] == 'install':
         if(installer.is_package_installed(data['app'])):
-            request_result['result'] = 'success'
             request_result['result_code'] = 1000
-            request_result['message'] = 'Already installed'
         else:
             result = installer.install_package(data['app'])
             request_result['result_code'] = result.returncode
-            if result.returncode == 0:
-                request_result['result'] = 'success'                  
-                request_result['message'] = 'Successfully installed'
-            else:
-                request_result['result'] = 'error'
+
+            if result.returncode == 0:              
+                request_result['version'] = installer.get_package_version(data['app'])
 
 
     elif data['action'] == 'remove':
         result = installer.uninstall_package(data['app'])
         request_result['result_code'] = result.returncode
-        if result.returncode == 0:
-            request_result['result'] = 'success'                
-            request_result['message'] = 'Successfully removed'
-        else:
-            request_result['result'] = 'error'
 
-    #request_result['message'] = result.stdout
     producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
     result = produce.get(timeout=60)
     
@@ -125,4 +115,3 @@ while(True):
     produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
     result = produce.get(timeout=60)
     time.sleep(5)
-
