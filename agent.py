@@ -10,32 +10,36 @@ import socket
 import distro
 import installer
 import subprocess
-
-#print(installer.is_package_installed("python"))
-
-#print(installer.get_manualy_installed_packages())
-
-#print(subprocess.run(["apt", "list"]).returncode)
+import socket
 
 BOOTSTRAP_SERVERS = ['172.16.12.56:9092']
 producer = KafkaProducer(bootstrap_servers=['172.16.12.56:9092'])
 t_kafka = threading.Thread()
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(('8.8.8.8', 80))
+    return s.getsockname()[0]
+
+ip_address = get_ip()
+
 device_info = {
-    "name": socket.gethostname(),
-    "mac" : gma(),
-    "distribution" : distro.name(),
-    "version" : distro.version(),
-    "packages" : installer.get_manualy_installed_packages()
+    'name': socket.gethostname(),
+    'ip' : ip_address,
+    'mac' : gma(),
+    'distribution' : distro.name(),
+    'version' : distro.version(),
+    'packages' : installer.get_manualy_installed_packages()
 }
 
 
 request_result = {
-    "mac" : gma(),
-    "sequence_number" : -1,
-    "result_code" : 0,
-    "version" : "",
-    "message" : ""
+    'mac' : gma(),
+    'sequence_number' : -1,
+    'result_code' : 0,
+    'version' : '',
+    'latest_version': '',
+    'message' : ''
 }
 
 producer.send('DEVICE_INFO', json.dumps(device_info).encode('utf-8'))
@@ -57,7 +61,7 @@ def register_kafka_listener(topic, listener):
 
 def kafka_config_listener(data):
     global config_data
-    config_data = json.loads(data.value.decode("utf-8"))
+    config_data = json.loads(data.value.decode('utf-8'))
 
     if 'fileDownload' in config_data:
         print('http://172.16.12.56/api/uploads/' + config_data['fileDownload'])
@@ -71,28 +75,37 @@ def kafka_config_listener(data):
         print(config_data)
 
 def kafka_management_listener(data):
-    data = json.loads(data.value.decode("utf-8"))
+    data = json.loads(data.value.decode('utf-8'))
     request_result['sequence_number'] = data['sequence_number']
 
     if data['action'] == 'install':
         if(installer.is_package_installed(data['app'])):
             request_result['result_code'] = 1000
         else:
-            result = installer.install_package(data['app'])
+            result = installer.install_package(data['app'], data['version'])
             request_result['result_code'] = result.returncode
 
             if result.returncode == 0:              
-                request_result['version'] = installer.get_package_version(data['app'])
-
+                request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
 
     elif data['action'] == 'remove':
-        result = installer.uninstall_package(data['app'])
-        request_result['result_code'] = result.returncode
+        if(not installer.is_package_installed(data['app'])):
+            request_result['result_code'] = 1000
+        else:
+            result = installer.uninstall_package(data['app'])
+            request_result['result_code'] = result.returncode
+
+    elif data['action'] == 'update':
+        if(not installer.is_package_installed(data['app'])):
+            request_result['result_code'] = 1000
+        else:    
+            result = installer.update_package(data['app'], data['version'])
+            if result.returncode == 0: 
+                request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
 
     producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
     result = produce.get(timeout=60)
     
-
 register_kafka_listener('CONFIG', kafka_config_listener)
 register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
 
@@ -100,16 +113,17 @@ register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management
 while(True):
     hdd = psutil.disk_usage('/')
     monitor = {    
-        "name" : distro.name(),
-	    "mac" : gma(),
-        "time" : time.strftime("%H:%M:%S", time.localtime()),
-        "cpu_usage" : round(psutil.cpu_percent(), 2),
-        "ram_usage" : round(psutil.virtual_memory().percent, 2),
-        "cpu_freq" : psutil.cpu_freq(), #freq, min, max
-        "cpu_stats" : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
-        "disk_space": round(hdd.total / (2**30), 2),
-        "used_disk_space" : round(hdd.used / (2**30), 2)
-        #"disk partitions" : psutil.disk_partitions()
+        'name' : distro.name(),
+        'ip' : ip_address,
+	    'mac' : gma(),
+        'time' : time.strftime('%H:%M:%S', time.localtime()),
+        'cpu_usage' : round(psutil.cpu_percent(), 2),
+        'ram_usage' : round(psutil.virtual_memory().percent, 2),
+        'cpu_freq' : psutil.cpu_freq(), #freq, min, max
+        'cpu_stats' : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
+        'disk_space': round(hdd.total / (2**30), 2),
+        'used_disk_space' : round(hdd.used / (2**30), 2)
+        #'disk partitions' : psutil.disk_partitions()
     
     }
     produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
