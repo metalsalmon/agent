@@ -23,16 +23,6 @@ def get_ip():
 
 ip_address = get_ip()
 
-device_info = {
-    'name': socket.gethostname(),
-    'ip' : ip_address,
-    'mac' : gma(),
-    'distribution' : distro.name(),
-    'version' : distro.version(),
-    'packages' : installer.get_manualy_installed_packages()
-}
-
-
 request_result = {
     'mac' : gma(),
     'sequence_number' : -1,
@@ -42,7 +32,34 @@ request_result = {
     'message' : ''
 }
 
+device_info = {
+    'name': socket.gethostname(),
+    'ip' : ip_address,
+    'mac' : gma(),
+    'distribution' : distro.name(),
+    'version' : distro.version(),
+}
 producer.send('DEVICE_INFO', json.dumps(device_info).encode('utf-8'))
+
+def send_device_info():
+    while(True):
+        time.sleep(20)
+        device_info = {
+            'name': socket.gethostname(),
+            'ip' : ip_address,
+            'mac' : gma(),
+            'distribution' : distro.name(),
+            'version' : distro.version(),
+            'packages' : installer.get_manualy_installed_packages()
+        }
+        producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
+        
+
+t_device_info = threading.Thread()
+t_device_info._target = send_device_info
+t_device_info.daemon = True
+t_device_info.start()
+
 
 global config_data
 
@@ -64,9 +81,9 @@ def kafka_config_listener(data):
     config_data = json.loads(data.value.decode('utf-8'))
 
     if 'fileDownload' in config_data:
-        print('http://172.16.12.56/api/uploads/' + config_data['fileDownload'])
+        print(config_data['location'] + ' ' + config_data['fileDownload'])
         try:
-            wget.download('http://172.16.12.56:5000/api/uploads/' + config_data['fileDownload'], out= config_data['path'])
+            wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
         except Exception as e:
             print('chyba: ')
             print(e)
