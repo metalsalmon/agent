@@ -43,7 +43,7 @@ producer.send('DEVICE_INFO', json.dumps(device_info).encode('utf-8'))
 
 def send_device_info():
     while(True):
-        time.sleep(20)
+        time.sleep(3)
         device_info = {
             'name': socket.gethostname(),
             'ip' : ip_address,
@@ -53,12 +53,27 @@ def send_device_info():
             'packages' : installer.get_manualy_installed_packages()
         }
         producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
-        
+        time.sleep(600)
 
 t_device_info = threading.Thread()
 t_device_info._target = send_device_info
 t_device_info.daemon = True
 t_device_info.start()
+
+# def send_alive_info():
+#     while(True):
+#         time.sleep(10)
+#         device_info = {
+#             'alive' : True,
+#             'mac' : gma()
+#         }
+#         producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
+        
+
+# t_send_alive_info = threading.Thread()
+# t_send_alive_info._target = send_alive_info
+# t_send_alive_info.daemon = True
+# t_send_alive_info.start()
 
 
 global config_data
@@ -123,7 +138,7 @@ def kafka_management_listener(data):
     producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
     result = produce.get(timeout=60)
     
-register_kafka_listener('CONFIG', kafka_config_listener)
+register_kafka_listener(gma().replace(':', '') + 'CONFIG', kafka_config_listener)
 register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
 
 
