@@ -72,6 +72,9 @@ def update_package(name, version):
     else:
         return subprocess.run(['sudo', 'apt-get', 'install', '-y', name+'='+version], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
+def update():
+    subprocess.run(['sudo', 'apt', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
 def get_package_versions(name):
     result = subprocess.check_output(['apt-cache', 'policy', name], text=True)
     return re.search('[\n\r].*Installed:\s*([^\n\r]*)', result).group(1), re.search('[\n\r].*Candidate:\s*([^\n\r]*)', result).group(1)
