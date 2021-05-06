@@ -13,8 +13,79 @@ import subprocess
 import socket
 
 BOOTSTRAP_SERVERS = ['172.16.12.56:9092']
-producer = KafkaProducer(bootstrap_servers=['172.16.12.56:9092'])
 t_kafka = threading.Thread()
+producer = None
+global config_data
+
+def register_kafka_listener(topic, listener):
+
+    def poll():
+        consumer = KafkaConsumer(topic, bootstrap_servers=BOOTSTRAP_SERVERS)
+
+        consumer.poll(timeout_ms=5000)
+        for msg in consumer:
+            listener(msg)
+    t_kafka = threading.Thread()
+    t_kafka._target = poll
+    t_kafka.daemon = True
+    t_kafka.start()
+
+def kafka_config_listener(data):
+    global config_data
+    config_data = json.loads(data.value.decode('utf-8'))
+
+    if 'fileDownload' in config_data:
+        print(config_data['location'] + ' ' + config_data['fileDownload'])
+        try:
+            wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
+        except Exception as e:
+            print(e)
+
+    else:
+        print(config_data)
+
+def kafka_management_listener(data):
+    data = json.loads(data.value.decode('utf-8'))
+    request_result['sequence_number'] = data['sequence_number']
+
+    if data['action'] == 'install':
+        if(installer.is_package_installed(data['app'])):
+            request_result['result_code'] = 1000
+        else:
+            result = installer.install_package(data['app'], data['version'])
+            request_result['result_code'] = result.returncode
+
+            if result.returncode == 0:              
+                request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
+
+    elif data['action'] == 'remove':
+        if(not installer.is_package_installed(data['app'])):
+            request_result['result_code'] = 1000
+        else:
+            result = installer.uninstall_package(data['app'])
+            request_result['result_code'] = result.returncode
+
+    elif data['action'] == 'update':
+        if(not installer.is_package_installed(data['app'])):
+            request_result['result_code'] = 1000
+        else:    
+            result = installer.update_package(data['app'], data['version'])
+            if result.returncode == 0: 
+                request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
+
+    producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
+    result = produce.get(timeout=60)
+
+while True:
+    try:
+        producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS)
+        register_kafka_listener(gma().replace(':', '') + 'CONFIG', kafka_config_listener)
+        register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
+        break
+    except Exception as e:
+        print(e)
+        time.sleep(10)
+        pass
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -76,70 +147,6 @@ t_device_info.start()
 # t_send_alive_info.start()
 
 
-global config_data
-
-def register_kafka_listener(topic, listener):
-
-    def poll():
-        consumer = KafkaConsumer(topic, bootstrap_servers=BOOTSTRAP_SERVERS)
-
-        consumer.poll(timeout_ms=5000)
-        for msg in consumer:
-            listener(msg)
-    t_kafka = threading.Thread()
-    t_kafka._target = poll
-    t_kafka.daemon = True
-    t_kafka.start()
-
-def kafka_config_listener(data):
-    global config_data
-    config_data = json.loads(data.value.decode('utf-8'))
-
-    if 'fileDownload' in config_data:
-        print(config_data['location'] + ' ' + config_data['fileDownload'])
-        try:
-            wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
-        except Exception as e:
-            print('chyba: ')
-            print(e)
-
-    else:
-        print(config_data)
-
-def kafka_management_listener(data):
-    data = json.loads(data.value.decode('utf-8'))
-    request_result['sequence_number'] = data['sequence_number']
-
-    if data['action'] == 'install':
-        if(installer.is_package_installed(data['app'])):
-            request_result['result_code'] = 1000
-        else:
-            result = installer.install_package(data['app'], data['version'])
-            request_result['result_code'] = result.returncode
-
-            if result.returncode == 0:              
-                request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
-
-    elif data['action'] == 'remove':
-        if(not installer.is_package_installed(data['app'])):
-            request_result['result_code'] = 1000
-        else:
-            result = installer.uninstall_package(data['app'])
-            request_result['result_code'] = result.returncode
-
-    elif data['action'] == 'update':
-        if(not installer.is_package_installed(data['app'])):
-            request_result['result_code'] = 1000
-        else:    
-            result = installer.update_package(data['app'], data['version'])
-            if result.returncode == 0: 
-                request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
-
-    producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
-    result = produce.get(timeout=60)
-    
-register_kafka_listener(gma().replace(':', '') + 'CONFIG', kafka_config_listener)
-register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
 
 
 while(True):
