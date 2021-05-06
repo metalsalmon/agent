@@ -11,6 +11,7 @@ import distro
 import installer
 import subprocess
 import socket
+import os
 
 BOOTSTRAP_SERVERS = ['172.16.12.56:9092']
 t_kafka = threading.Thread()
@@ -37,6 +38,10 @@ def kafka_config_listener(data):
     if 'fileDownload' in config_data:
         print(config_data['location'] + ' ' + config_data['fileDownload'])
         try:
+            if os.path.exists(config_data['path'] + config_data['fileDownload']):
+                os.remove(config_data['path'] + config_data['fileDownload'])
+            else:
+                print("The file does not exist") 
             wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
         except Exception as e:
             print(e)
