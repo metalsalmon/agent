@@ -51,7 +51,7 @@ def kafka_config_listener(data):
 
 def kafka_management_listener(data):
     data = json.loads(data.value.decode('utf-8'))
-    
+    print(data)
     request_result = {
     'mac' : gma(),
     'sequence_number' : data['sequence_number'],
@@ -149,11 +149,11 @@ t_device_info.start()
 def send_alive_info():
     while(True):
         time.sleep(5)
-        device_info = {
+        alive = {
             'alive' : True,
             'mac' : gma()
         }
-        producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
+        producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(alive).encode('utf-8'))
         
 
 t_send_alive_info = threading.Thread()
