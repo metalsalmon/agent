@@ -89,6 +89,7 @@ def kafka_management_listener(data):
     elif data['action'] == 'update_all':
         result = installer.update_all()    
         request_result['result_code'] = result.returncode
+        send_device_info()
 
     producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
     result = produce.get(timeout=60)
@@ -123,18 +124,21 @@ device_info = {
 producer.send('DEVICE_INFO', json.dumps(device_info).encode('utf-8'))
 
 def send_device_info():
+    device_info = {
+        'name': socket.gethostname(),
+        'ip' : ip_address,
+        'mac' : gma(),
+        'distribution' : distro.name(),
+        'version' : distro.version(),
+        'packages' : installer.get_manualy_installed_packages()
+    }
+    producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
+
+def loop_device_info():
     while(True):
-        time.sleep(3)
+        time.sleep(2)
         installer.update()
-        device_info = {
-            'name': socket.gethostname(),
-            'ip' : ip_address,
-            'mac' : gma(),
-            'distribution' : distro.name(),
-            'version' : distro.version(),
-            'packages' : installer.get_manualy_installed_packages()
-        }
-        producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
+        send_device_info()
         time.sleep(600)
 
 t_device_info = threading.Thread()
