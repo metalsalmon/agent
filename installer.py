@@ -2,17 +2,14 @@ import re
 import subprocess
 
 PACKAGE_MANAGERS = {
-    # 'command': 'test if package ? exists'-commnad
     'dpkg': 'dpkg -s ?',
-    'brew': 'brew ls ?'
-    # just add new package managers here
 }
 
 def find_package_manager():
     for pm in PACKAGE_MANAGERS.keys():
         if subprocess.call(['which', pm], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
             return pm
-    raise OSError('Unable to find package manager.')
+    raise OSError('Usuported package manager')
 
 def is_package_installed(name):
     return subprocess.call(PACKAGE_MANAGERS[find_package_manager()].replace('?', name)+' > /dev/null 2>&1', shell=True) == 0
@@ -74,6 +71,12 @@ def update_package(name, version):
 
 def update():
     subprocess.run(['sudo', 'apt', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+def update_all():
+    subprocess.run(['sudo', 'apt-get', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+    return subprocess.run(['sudo', 'apt-get', 'dist-upgrade', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
 
 def get_package_versions(name):
     result = subprocess.check_output(['apt-cache', 'policy', name], text=True)

@@ -51,7 +51,15 @@ def kafka_config_listener(data):
 
 def kafka_management_listener(data):
     data = json.loads(data.value.decode('utf-8'))
-    request_result['sequence_number'] = data['sequence_number']
+    
+    request_result = {
+    'mac' : gma(),
+    'sequence_number' : data['sequence_number'],
+    'result_code' : 0,
+    'version' : '',
+    'latest_version': '',
+    'message' : ''
+    }
 
     if data['action'] == 'install':
         if(installer.is_package_installed(data['app'])):
@@ -75,8 +83,12 @@ def kafka_management_listener(data):
             request_result['result_code'] = 1000
         else:    
             result = installer.update_package(data['app'], data['version'])
+            request_result['result_code'] = result.returncode
             if result.returncode == 0: 
                 request_result['version'], request_result['latest_version'] = installer.get_package_versions(data['app'])
+    elif data['action'] == 'update_all':
+        result = installer.update_all()    
+        request_result['result_code'] = result.returncode
 
     producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
     result = produce.get(timeout=60)
@@ -99,14 +111,7 @@ def get_ip():
 
 ip_address = get_ip()
 
-request_result = {
-    'mac' : gma(),
-    'sequence_number' : -1,
-    'result_code' : 0,
-    'version' : '',
-    'latest_version': '',
-    'message' : ''
-}
+
 
 device_info = {
     'name': socket.gethostname(),
