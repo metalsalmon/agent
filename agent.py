@@ -19,9 +19,13 @@ producer = None
 global config_data
 
 def register_kafka_listener(topic, listener):
-
+    consumer = KafkaConsumer(topic,
+                             bootstrap_servers=BOOTSTRAP_SERVERS,
+                             auto_offset_reset='earliest',
+                             enable_auto_commit=True
+                             )
     def poll():
-        consumer = KafkaConsumer(topic, bootstrap_servers=BOOTSTRAP_SERVERS)
+        
 
         consumer.poll(timeout_ms=5000)
         for msg in consumer:
@@ -90,9 +94,11 @@ def kafka_management_listener(data):
         result = installer.update_all()    
         request_result['result_code'] = result.returncode
         send_device_info()
-
-    producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
-    result = produce.get(timeout=60)
+    try:
+        producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
+        result = produce.get(timeout=60)
+    except Exception as e:
+        print(e)
 
 while True:
     try:
@@ -132,8 +138,11 @@ def send_device_info():
         'version' : distro.version(),
         'packages' : installer.get_manualy_installed_packages()
     }
-    producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
-
+    try:
+        producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
+    except Exception as e:
+        print(e)
+        
 def loop_device_info():
     while(True):
         time.sleep(2)
@@ -153,8 +162,10 @@ def send_alive_info():
             'alive' : True,
             'mac' : gma()
         }
-        producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(alive).encode('utf-8'))
-        
+        try:
+            producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(alive).encode('utf-8'))
+        except Exception as e:
+            print(e)
 
 t_send_alive_info = threading.Thread()
 t_send_alive_info._target = send_alive_info
@@ -180,6 +191,9 @@ while(True):
         #'disk partitions' : psutil.disk_partitions()
     
     }
-    produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
-    result = produce.get(timeout=60)
-    time.sleep(5)
+    try:
+        produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
+        result = produce.get(timeout=60)
+        time.sleep(5)
+    except Exception as e:
+        print(e)
