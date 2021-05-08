@@ -12,6 +12,18 @@ import installer
 import subprocess
 import socket
 import os
+import sqlite3
+
+
+connection = sqlite3.connect('tasks.db')
+
+cursor = connection.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+results(task TEXT, topic TEXT )""")
+
+connection.commit()
+
 
 BOOTSTRAP_SERVERS = ['172.16.12.56:9092']
 t_kafka = threading.Thread()
@@ -96,8 +108,10 @@ def kafka_management_listener(data):
         send_device_info()
     try:
         producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
-        result = produce.get(timeout=60)
+        result = produce.get(timeout=20)
     except Exception as e:
+        cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(request_result), 'REQUEST_RESULT'))
+        connection.commit()
         print(e)
 
 while True:
@@ -141,6 +155,8 @@ def send_device_info():
     try:
         producer.send(f'{gma()}_DEVICE_INFO'.replace(':',''), json.dumps(device_info).encode('utf-8'))
     except Exception as e:
+        cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(device_info), f'{gma()}_DEVICE_INFO'.replace(':','')))
+        connection.commit()
         print(e)
         
 def loop_device_info():
@@ -173,8 +189,6 @@ t_send_alive_info.daemon = True
 t_send_alive_info.start()
 
 
-
-
 while(True):
     hdd = psutil.disk_usage('/')
     monitor = {    
@@ -184,16 +198,24 @@ while(True):
         'time' : time.strftime('%H:%M:%S', time.localtime()),
         'cpu_usage' : round(psutil.cpu_percent(), 2),
         'ram_usage' : round(psutil.virtual_memory().percent, 2),
-        'cpu_freq' : psutil.cpu_freq(), #freq, min, max
-        'cpu_stats' : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
+        #'cpu_freq' : psutil.cpu_freq(), #freq, min, max
+        #'cpu_stats' : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
         'disk_space': round(hdd.total / (2**30), 2),
         'used_disk_space' : round(hdd.used / (2**30), 2)
         #'disk partitions' : psutil.disk_partitions()
     
     }
     try:
+        cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(monitor), 'MONITORING'))
+        connection.commit()
         produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
-        result = produce.get(timeout=60)
+        result = produce.get(timeout=20)
+        for row in cursor.execute("SELECT * FROM results"):
+            producer.send(row[1], json.dumps(eval(row[0])).encode('utf-8'))
+        cursor.execute("delete from results")
+        connection.commit()
         time.sleep(5)
     except Exception as e:
+        cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(monitor), 'MONITORING'))
+        connection.commit()
         print(e)
