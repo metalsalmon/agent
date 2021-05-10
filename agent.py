@@ -120,7 +120,7 @@ def kafka_management_listener(data):
 while True:
     try:
         producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS)
-        register_kafka_listener(gma().replace(':', '') + 'CONFIG', kafka_config_listener)
+        register_kafka_listener(gma().replace(':', '') + '_CONFIG', kafka_config_listener)
         register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
         break
     except Exception as e:
