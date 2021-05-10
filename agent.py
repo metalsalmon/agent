@@ -50,6 +50,12 @@ def register_kafka_listener(topic, listener):
 def kafka_config_listener(data):
     global config_data
     config_data = json.loads(data.value.decode('utf-8'))
+    request_result = {
+        'mac' : gma(),
+        'sequence_number' : config_data['sequence_number'],
+        'result_code' : 0,
+        'message' : ''
+    }
 
     if 'fileDownload' in config_data:
         print(config_data['location'] + ' ' + config_data['fileDownload'] + ' ' + config_data['type'])
@@ -62,9 +68,30 @@ def kafka_config_listener(data):
             wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
 
             if config_data['type'] == 'script':
-                print(installer.run_script())   
+                print(installer.run_script())
+                if installer.run_script().returncode == 0:
+                    request_result['message'] = 'script successfully executed'
+                else:
+                    request_result['message'] = 'unable to execute script'
+            else:
+                request_result['message'] = 'file successfully uploaded'
         except Exception as e:
+            request_result['message'] = 'unable to download file'
+            request_result['result_code'] = 1111
             print(e)
+
+        try:
+            producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
+            result = produce.get(timeout=20)
+        except Exception as e:
+            connection = sqlite3.connect('tasks.db')
+            cursor = connection.cursor()
+            cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(request_result), 'REQUEST_RESULT'))
+            connection.commit()
+            connection.close()
+            print(e)
+
+        
 
     else:
         print(config_data)
