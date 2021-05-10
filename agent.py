@@ -64,17 +64,19 @@ def kafka_config_listener(data):
                 os.remove(config_data['path'] + config_data['fileDownload'])
 
             wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
+            print(config_data['type'])
 
             if config_data['type'] == 'script':
-                if installer.run_script().returncode == 0:
+                ret = installer.run_script().returncode
+                if ret == 0:
                     request_result['message'] = 'script successfully executed'
                 else:
                     request_result['message'] = 'unable to execute script'
+                    request_result['result_code'] = ret
             else:
                 request_result['message'] = 'file successfully uploaded'
         except Exception as e:
             request_result['message'] = 'unable to download file'
-            request_result['result_code'] = 1111
             print(e)
 
         try:
