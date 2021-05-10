@@ -173,7 +173,7 @@ def loop_device_info():
         time.sleep(600)
 
 t_device_info = threading.Thread()
-t_device_info._target = send_device_info
+t_device_info._target = loop_device_info
 t_device_info.daemon = True
 t_device_info.start()
 
@@ -212,7 +212,6 @@ while(True):
     
     }
     try:
-        print(mac)
         produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
         result = produce.get(timeout=20)
         connection = sqlite3.connect('tasks.db')
