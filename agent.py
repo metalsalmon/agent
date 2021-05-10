@@ -179,13 +179,14 @@ t_device_info.start()
 
 def send_alive_info():
     while(True):
-        time.sleep(5)
+        
         alive = {
             'alive' : True,
             'mac' : mac
         }
         try:
             producer.send(f'{mac}_DEVICE_INFO'.replace(':',''), json.dumps(alive).encode('utf-8'))
+            time.sleep(5)
         except Exception as e:
             print(e)
 
