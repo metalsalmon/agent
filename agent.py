@@ -52,13 +52,17 @@ def kafka_config_listener(data):
     config_data = json.loads(data.value.decode('utf-8'))
 
     if 'fileDownload' in config_data:
-        print(config_data['location'] + ' ' + config_data['fileDownload'])
+        print(config_data['location'] + ' ' + config_data['fileDownload'] + ' ' + config_data['type'])
         try:
             if os.path.exists(config_data['path'] + config_data['fileDownload']):
                 os.remove(config_data['path'] + config_data['fileDownload'])
             else:
                 print("The file does not exist") 
+
             wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
+
+            if config_data['type'] == 'script':
+                print(installer.run_script())   
         except Exception as e:
             print(e)
 
