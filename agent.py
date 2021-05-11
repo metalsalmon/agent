@@ -24,8 +24,10 @@ results(task TEXT, topic TEXT )""")
 connection.commit()
 connection.close()
 
+with open('config.json') as conf:
+  data = json.load(conf)
 
-BOOTSTRAP_SERVERS = ['172.16.12.56:9092']
+BOOTSTRAP_SERVERS = data['kafka_brokers']
 t_kafka = threading.Thread()
 producer = None
 global config_data
