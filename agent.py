@@ -57,16 +57,16 @@ def register_kafka_listener(topic, listener):
 def kafka_config_listener(data):
     global config_data
     config_data = json.loads(data.value.decode('utf-8'))
+    if 'reboot' in config_data:
+        installer.reboot()
     request_result = {
         'mac' : gma(),
         'sequence_number' : config_data['sequence_number'],
         'result_code' : 0,
         'message' : ''
     }
-    if 'reboot' in config_data:
-        installer.reboot()
 
-    elif 'fileDownload' in config_data:
+    if 'fileDownload' in config_data:
         print(config_data['location'] + ' ' + config_data['fileDownload'] + ' ' + config_data['type'])
         try:
             if os.path.exists(config_data['path'] + config_data['fileDownload']):
