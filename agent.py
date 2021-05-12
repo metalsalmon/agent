@@ -80,7 +80,7 @@ def kafka_config_listener(data):
                     request_result['message'] = 'script successfully executed'
                 else:
                     request_result['message'] = 'unable to execute script'
-                    request_result['result_code'] = ret
+                    request_result['result_code'] = 1111
             else:
                 request_result['message'] = 'file successfully uploaded'
         except Exception as e:
