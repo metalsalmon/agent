@@ -67,14 +67,13 @@ def kafka_config_listener(data):
     }
 
     if 'fileDownload' in config_data:
-        print(config_data['location'] + ' ' + config_data['fileDownload'] + ' ' + config_data['type'])
+        print(config_data['location'] +config_data['fileDownload'])
         try:
             if os.path.exists(config_data['path'] + config_data['fileDownload']):
                 os.remove(config_data['path'] + config_data['fileDownload'])
 
             wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
-            print(config_data['type'])
-
+            
             if config_data['type'] == 'script':
                 ret = installer.run_script().returncode
                 if ret == 0:
