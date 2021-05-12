@@ -14,8 +14,13 @@ import socket
 import os
 import sqlite3
 
-
+while(gma() == None or gma()== ''):
+    time.sleep(1)
+    continue
 mac = gma()
+
+installer.auto_start()
+
 connection = sqlite3.connect('tasks.db')
 cursor = connection.cursor()
 cursor.execute("""CREATE TABLE IF NOT EXISTS
@@ -58,8 +63,10 @@ def kafka_config_listener(data):
         'result_code' : 0,
         'message' : ''
     }
+    if 'reboot' in config_data:
+        installer.reboot()
 
-    if 'fileDownload' in config_data:
+    elif 'fileDownload' in config_data:
         print(config_data['location'] + ' ' + config_data['fileDownload'] + ' ' + config_data['type'])
         try:
             if os.path.exists(config_data['path'] + config_data['fileDownload']):
@@ -91,9 +98,6 @@ def kafka_config_listener(data):
             connection.commit()
             connection.close()
             print(e)
-
-        
-
     else:
         print(config_data)
 

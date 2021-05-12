@@ -1,5 +1,6 @@
 import re
 import subprocess
+import os
 
 PACKAGE_MANAGERS = {
     'dpkg': 'dpkg -s ?',
@@ -77,6 +78,8 @@ def update_all():
 
     return subprocess.run(['sudo', 'apt-get', 'dist-upgrade', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
+def reboot():
+    return subprocess.run(['sudo', 'reboot'])
 
 def get_package_versions(name):
     result = subprocess.check_output(['apt-cache', 'policy', name], text=True)
@@ -85,3 +88,20 @@ def get_package_versions(name):
 def run_script():
     subprocess.run(['sudo', 'chmod', '+x', 'script'])
     return subprocess.run(["./script"], shell=True)
+
+def auto_start():
+    if(not os.path.isfile('/etc/systemd/system/agent-monitoring.service')):
+        with open(('/etc/systemd/system/agent-monitoring.service'), 'w') as file:
+            file.writelines(
+                ['[Unit]\n',
+                'After=network.target\n',
+                '[Service]\n',
+                'Type=simple\n',
+                'ExecStart=' + os.getcwd() + '/' + 'agentv1' + '\n',
+                'WorkingDirectory=' + os.getcwd()+ '\n',
+                '[Install]\n',
+                'WantedBy=multi-user.target\n',
+                ])
+        subprocess.run(['sudo', 'chmod', '664', '/etc/systemd/system/agent-monitoring.service'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        subprocess.run(['sudo', 'systemctl', 'daemon-reload'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        subprocess.run(['sudo', 'systemctl', 'enable', 'agent-monitoring.service'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
