@@ -65,7 +65,6 @@ def kafka_config_listener(data):
     }
 
     if 'fileDownload' in config_data:
-        print(config_data['location'] +config_data['fileDownload'])
         try:
             if os.path.exists(config_data['path'] + config_data['fileDownload']):
                 os.remove(config_data['path'] + config_data['fileDownload'])
@@ -84,7 +83,6 @@ def kafka_config_listener(data):
         except Exception as e:
             request_result['result_code'] = 404
             request_result['message'] = 'unable to download file'
-            print(e)
 
         try:
             producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))
@@ -95,13 +93,9 @@ def kafka_config_listener(data):
             cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(request_result), 'REQUEST_RESULT'))
             connection.commit()
             connection.close()
-            print(e)
-    else:
-        print(config_data)
 
 def kafka_management_listener(data):
     data = json.loads(data.value.decode('utf-8'))
-    print(data)
     request_result = {
     'mac' : mac,
     'sequence_number' : data['sequence_number'],
@@ -149,7 +143,6 @@ def kafka_management_listener(data):
         cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(request_result), 'REQUEST_RESULT'))
         connection.commit()
         connection.close()
-        print(e)
 
 while True:
     try:
@@ -158,7 +151,6 @@ while True:
         register_kafka_listener(mac.replace(':', '') + '_MANAGEMENT', kafka_management_listener)
         break
     except Exception as e:
-        print(e)
         time.sleep(10)
         pass
 
@@ -197,7 +189,6 @@ def send_device_info():
         cursor.execute('INSERT INTO results VALUES (?, ?)', ("{}".format(device_info), f'{mac}_DEVICE_INFO'.replace(':','')))
         connection.commit()
         connection.close()
-        print(e)
 
 def send_alive_info():
     while(True):
@@ -231,6 +222,11 @@ t_device_info.start()
 
 while(True):
     hdd = psutil.disk_usage('/')
+    try:
+    	cpu_temp = psutil.sensors_temperatures()[next(iter(psutil.sensors_temperatures()))][0].current   		
+    except Exception as e:
+    	cpu_temp = 0
+    
     monitor = {    
         'name' : distro.name(),
         'ip' : ip_address,
@@ -242,10 +238,11 @@ while(True):
         #'cpu_stats' : psutil.cpu_stats(), #? interrupts, soft_interrupts, syscalls
         'disk_space': round(hdd.total / (2**30), 2),
         'used_disk_space' : round(hdd.used / (2**30), 2),
-        'cpu_temp' : psutil.sensors_temperatures()['cpu_thermal'][0].current
+        'cpu_temp' : cpu_temp
         #'disk partitions' : psutil.disk_partitions()
     
     }
+    
     try:
         produce = producer.send('MONITORING', json.dumps(monitor).encode('utf-8'))
         result = produce.get(timeout=20)
