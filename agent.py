@@ -19,7 +19,7 @@ while(gma() == None or gma()== ''):
     continue
 mac = gma()
 
-installer.auto_start()
+#installer.auto_start()
 
 connection = sqlite3.connect('tasks.db')
 cursor = connection.cursor()
