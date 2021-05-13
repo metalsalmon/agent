@@ -30,9 +30,9 @@ connection.commit()
 connection.close()
 
 with open('config.json') as conf:
-  data = json.load(conf)
+  config = json.load(conf)
 
-BOOTSTRAP_SERVERS = data['kafka_brokers']
+BOOTSTRAP_SERVERS = config['kafka_brokers']
 t_kafka = threading.Thread()
 producer = None
 global config_data
@@ -60,7 +60,7 @@ def kafka_config_listener(data):
     if 'reboot' in config_data:
         installer.reboot()
     request_result = {
-        'mac' : gma(),
+        'mac' : mac,
         'sequence_number' : config_data['sequence_number'],
         'result_code' : 0,
         'message' : ''
@@ -84,6 +84,7 @@ def kafka_config_listener(data):
             else:
                 request_result['message'] = 'file successfully uploaded'
         except Exception as e:
+            request_result['result_code'] = 404
             request_result['message'] = 'unable to download file'
             print(e)
 
@@ -104,7 +105,7 @@ def kafka_management_listener(data):
     data = json.loads(data.value.decode('utf-8'))
     print(data)
     request_result = {
-    'mac' : gma(),
+    'mac' : mac,
     'sequence_number' : data['sequence_number'],
     'result_code' : 0,
     'version' : '',
@@ -154,9 +155,9 @@ def kafka_management_listener(data):
 
 while True:
     try:
-        producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS)
-        register_kafka_listener(gma().replace(':', '') + '_CONFIG', kafka_config_listener)
-        register_kafka_listener(gma().replace(':', '') + '_MANAGEMENT', kafka_management_listener)
+        producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS, acks=1)
+        register_kafka_listener(mac.replace(':', '') + '_CONFIG', kafka_config_listener)
+        register_kafka_listener(mac.replace(':', '') + '_MANAGEMENT', kafka_management_listener)
         break
     except Exception as e:
         print(e)
@@ -175,7 +176,7 @@ ip_address = get_ip()
 device_info = {
     'name': socket.gethostname(),
     'ip' : ip_address,
-    'mac' : gma(),
+    'mac' : mac,
     'distribution' : distro.name(),
     'version' : distro.version(),
 }
@@ -185,7 +186,7 @@ def send_device_info():
     device_info = {
         'name': socket.gethostname(),
         'ip' : ip_address,
-        'mac' : gma(),
+        'mac' : mac,
         'distribution' : distro.name(),
         'version' : distro.version(),
         'packages' : installer.get_manualy_installed_packages()
@@ -199,18 +200,6 @@ def send_device_info():
         connection.commit()
         connection.close()
         print(e)
-        
-def loop_device_info():
-    while(True):
-        time.sleep(2)
-        installer.update()
-        send_device_info()
-        time.sleep(600)
-
-t_device_info = threading.Thread()
-t_device_info._target = loop_device_info
-t_device_info.daemon = True
-t_device_info.start()
 
 def send_alive_info():
     while(True):
@@ -221,7 +210,7 @@ def send_alive_info():
         }
         try:
             producer.send(f'{mac}_DEVICE_INFO'.replace(':',''), json.dumps(alive).encode('utf-8'))
-            time.sleep(5)
+            time.sleep(config['keep_alive'])
         except Exception as e:
             print(e)
 
@@ -229,7 +218,18 @@ t_send_alive_info = threading.Thread()
 t_send_alive_info._target = send_alive_info
 t_send_alive_info.daemon = True
 t_send_alive_info.start()
+        
+def loop_device_info():
+    while(True):
+        time.sleep(2)
+        installer.update()
+        send_device_info()
+        time.sleep(config['package_changes'])
 
+t_device_info = threading.Thread()
+t_device_info._target = loop_device_info
+t_device_info.daemon = True
+t_device_info.start()
 
 while(True):
     hdd = psutil.disk_usage('/')
@@ -258,7 +258,7 @@ while(True):
         cursor.execute("delete from results")
         connection.commit()
         connection.close()
-        time.sleep(5)
+        time.sleep(config['monitoring'])
     except Exception as e:
         connection = sqlite3.connect('tasks.db')
         cursor = connection.cursor()
