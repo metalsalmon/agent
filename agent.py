@@ -68,18 +68,22 @@ def kafka_config_listener(data):
         try:
             if os.path.exists(config_data['path'] + config_data['fileDownload']):
                 os.remove(config_data['path'] + config_data['fileDownload'])
-
-            wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
+            if not os.path.isdir(config_data['path']):
+                request_result['result_code'] = 404
+                request_result['message'] = 'wrong path'
             
-            if config_data['type'] == 'script':
-                ret = installer.run_script().returncode
-                if ret == 0:
-                    request_result['message'] = 'script successfully executed'
-                else:
-                    request_result['message'] = 'unable to execute script'
-                    request_result['result_code'] = 1111
             else:
-                request_result['message'] = 'file successfully uploaded'
+                wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
+                
+                if config_data['type'] == 'script':
+                    ret = installer.run_script().returncode
+                    if ret == 0:
+                        request_result['message'] = 'script successfully executed'
+                    else:
+                        request_result['message'] = 'unable to execute script'
+                        request_result['result_code'] = 1111
+                else:
+                    request_result['message'] = 'file successfully uploaded'
         except Exception as e:
             request_result['result_code'] = 404
             request_result['message'] = 'unable to download file'
