@@ -55,38 +55,37 @@ def get_manualy_installed_packages():
 
 def install_package(name, version):
     if version == 'latest':
-        return subprocess.run(['sudo', 'apt', 'install', '-y', name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        return subprocess.run(['apt', 'install', '-y', name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     else:
-        print(version)
-        return subprocess.run(['sudo', 'apt', 'install', '-y', name+'='+version], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        return subprocess.run(['apt', 'install', '-y', name+'='+version], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 def uninstall_package(name):
-    return subprocess.run(['sudo', 'apt', 'purge', '-y', name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    return subprocess.run(['apt', 'purge', '-y', name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 def update_package(name, version):
     if version == 'latest':
-        subprocess.run(['sudo', 'apt', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        return subprocess.run(['sudo', 'apt', 'install', '--only-upgrade' , '-y', name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        subprocess.run(['apt', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        return subprocess.run(['apt', 'install', '--only-upgrade' , '-y', name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     else:
-        return subprocess.run(['sudo', 'apt-get', 'install', '-y', name+'='+version], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        return subprocess.run(['apt-get', 'install', '-y', name+'='+version], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 def update():
-    subprocess.run(['sudo', 'apt', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    subprocess.run(['apt', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 def update_all():
-    subprocess.run(['sudo', 'apt-get', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    subprocess.run(['apt-get', 'update', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
-    return subprocess.run(['sudo', 'apt-get', 'dist-upgrade', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    return subprocess.run(['apt-get', 'dist-upgrade', '-y'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 def reboot():
-    return subprocess.run(['sudo', 'reboot'])
+    return subprocess.run(['reboot'])
 
 def get_package_versions(name):
     result = subprocess.check_output(['apt-cache', 'policy', name], text=True)
     return re.search('[\n\r].*Installed:\s*([^\n\r]*)', result).group(1), re.search('[\n\r].*Candidate:\s*([^\n\r]*)', result).group(1)
 
 def run_script():
-    subprocess.run(['sudo', 'chmod', '+x', 'script'])
+    subprocess.run(['chmod', '+x', 'script'])
     return subprocess.run(["./script"], shell=True)
 
 def auto_start():
