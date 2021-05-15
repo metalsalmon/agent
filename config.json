@@ -1,0 +1,6 @@
+{
+    "kafka_brokers" : ["172.16.12.53:9092"],
+    "keep_alive" : 4,
+    "monitoring" : 5,
+    "package_changes" : 600
+}
