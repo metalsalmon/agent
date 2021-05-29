@@ -76,17 +76,18 @@ def kafka_config_listener(data):
                 wget.download(config_data['location'] + config_data['fileDownload'], out= config_data['path'])
                 
                 if config_data['type'] == 'script':
-                    ret = installer.run_script().returncode
+                    script = installer.run_script()
+                    ret = script.returncode
                     if ret == 0:
-                        request_result['message'] = 'script successfully executed'
+                        request_result['message'] = script.stdout
                     else:
-                        request_result['message'] = 'unable to execute script'
+                        request_result['message'] = script.stdout
                         request_result['result_code'] = 1111
                 else:
                     request_result['message'] = 'file successfully uploaded'
         except Exception as e:
             request_result['result_code'] = 404
-            request_result['message'] = 'unable to download file'
+            request_result['message'] = str(e)
 
         try:
             producer.send('REQUEST_RESULT', json.dumps(request_result).encode('utf-8'))

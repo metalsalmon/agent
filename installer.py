@@ -86,7 +86,7 @@ def get_package_versions(name):
 
 def run_script():
     subprocess.run(['chmod', '+x', 'script'])
-    return subprocess.run(["./script"], shell=True)
+    return subprocess.run(["./script"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True)
 
 def auto_start():
     if(not os.path.isfile('/etc/systemd/system/agent-monitoring.service')):
